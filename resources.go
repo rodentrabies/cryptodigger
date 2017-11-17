@@ -14,6 +14,7 @@ var (
 
 	FSize  int     = 16
 	FScale float64 = 4
+	ASize  int     = FSize * int(FScale)
 )
 
 func loadPicture(path string) (pixel.Picture, error) {

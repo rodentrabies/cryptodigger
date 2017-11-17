@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	_ "image/png"
@@ -21,6 +22,7 @@ func Loop() {
 	if err != nil {
 		panic(err)
 	}
+	winCenter := win.Bounds().Center()
 
 	backgroundPic, err := loadPicture(BackgroundSprite)
 	if err != nil {
@@ -34,22 +36,63 @@ func Loop() {
 	}
 	diggerSprite := pixel.NewSprite(diggerPic, diggerPic.Bounds())
 
+	blockPic, err := loadPicture(BlockSprite)
+	if err != nil {
+		panic(err)
+	}
+	blockSprite := pixel.NewSprite(blockPic, blockPic.Bounds())
+
+	world := NewWorld()
+
+	cameraPos := winCenter
+	cameraSpeed := 500.0
+	last := time.Now()
+
+	diggerPos := pixel.ZV
+
 	diggerX, diggerY := 0, 2*FSize
 	step := time.Tick(time.Millisecond * 100)
 	scale := pixel.V(4, 4)
 	for !win.Closed() {
+		diggerPos = cameraPos.Sub(winCenter)
+
 		win.Clear(colornames.Skyblue)
-		plax.Draw(win, pixel.IM.Scaled(pixel.ZV, 4).Moved(win.Bounds().Center()))
+
+		dt := time.Since(last).Seconds()
+		last = time.Now()
+
+		cam := pixel.IM.Moved(winCenter.Sub(cameraPos))
+		win.SetMatrix(cam)
+
+		blocks := VisibleBlocks(
+			world,
+			pixel.V(diggerPos.X-winCenter.X/2, diggerPos.Y-winCenter.Y/2),
+			pixel.V(diggerPos.X+winCenter.X/2, diggerPos.Y+winCenter.Y/2),
+		)
+		fmt.Printf("blocks: %v\n", blocks)
+
+		plax.Draw(win, pixel.IM.Scaled(pixel.ZV, 4).Moved(cameraPos))
 		rect := pixel.R(
 			float64(diggerX), float64(diggerY),
 			float64(diggerX+FSize), float64(diggerY+FSize),
 		)
 		diggerSprite.Set(diggerPic, rect)
 
-		goldenRatio := pixel.V(win.Bounds().Center().X, win.Bounds().H()/2.61)
+		goldenRatio := pixel.V(cameraPos.X, win.Bounds().H()/2.61)
 		mat := pixel.IM.ScaledXY(pixel.ZV, scale).Moved(goldenRatio)
 
 		diggerSprite.Draw(win, mat)
+		for v, block := range blocks {
+			if block == nil {
+				continue
+			}
+			v := pixel.V(v.X+winCenter.X, v.Y)
+			blockMat := pixel.IM.Scaled(pixel.ZV, FScale).Moved(v)
+			minX, minY, maxX, maxY := block.Type*FSize, 3*FSize, (block.Type+1)*FSize, 4*FSize
+			r := pixel.R(float64(minX), float64(minY), float64(maxX), float64(maxY))
+			blockSprite.Set(blockPic, r)
+			blockSprite.Draw(win, blockMat)
+		}
 
 		if win.Pressed(pixelgl.KeyD) {
 			diggerY = 2 * FSize
@@ -57,6 +100,7 @@ func Loop() {
 			select {
 			case <-step:
 				diggerX = (diggerX + FSize) % (4 * FSize)
+				cameraPos.X += cameraSpeed * dt
 			default:
 			}
 		} else if win.Pressed(pixelgl.KeyA) {
@@ -65,6 +109,7 @@ func Loop() {
 			select {
 			case <-step:
 				diggerX = (diggerX + FSize) % (4 * FSize)
+				cameraPos.X -= cameraSpeed * dt
 			default:
 			}
 		} else if win.Pressed(pixelgl.MouseButtonLeft) {
@@ -90,4 +135,34 @@ func Loop() {
 
 		win.Update()
 	}
+}
+
+func VisibleBlocks(world World, min pixel.Vec, max pixel.Vec) map[pixel.Vec]*Block {
+	res := make(map[pixel.Vec]*Block)
+
+	view := world.GridView(
+		Cell{X: int(min.X)/ASize - 1, Y: int(min.Y)/ASize - 1},
+		Cell{X: int(max.X)/ASize + 1, Y: int(max.Y)/ASize + 1},
+	)
+
+	fmt.Printf("\nview:\n")
+	for i := 0; i < len(view); i++ {
+		for j := 0; j < len(view[i]); j++ {
+			if view[i][j] == nil {
+				fmt.Printf("_")
+			} else {
+				fmt.Printf("%d", view[i][j].Type)
+			}
+		}
+		fmt.Printf("\n")
+	}
+	fmt.Printf("\n")
+
+	for i := 0; i < len(view); i++ {
+		for j := 0; j < len(view[i]); j++ {
+			res[pixel.V(float64(j*ASize)+min.X, float64(i*ASize)+min.Y)] = view[i][j]
+		}
+	}
+
+	return res
 }
