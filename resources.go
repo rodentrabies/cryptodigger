@@ -12,9 +12,9 @@ var (
 	BlockSprite      = "assets/blocks.png"
 	BackgroundSprite = "assets/background.png"
 
-	FSize  int     = 16
+	FSize  float64 = 16
 	FScale float64 = 4
-	ASize  int     = FSize * int(FScale)
+	ASize  int     = int(FSize) * int(FScale)
 )
 
 func loadPicture(path string) (pixel.Picture, error) {
