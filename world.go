@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 )
 
@@ -49,12 +48,12 @@ func NewWorld() World {
 }
 
 func (world World) GridView(min, max Cell) [][]*Block {
-	fmt.Printf("minc: %v, maxc: %v\n", min, max)
 	height, width := max.Y-min.Y, max.X-min.X
 	grid := make([][]*Block, height)
 	for i := 0; i < height; i++ {
 		grid[i] = make([]*Block, width)
-		if i+min.Y < 0 {
+		// Initially digger should stand above the top block level
+		if i+min.Y < 1 {
 			continue
 		}
 		for j := 0; j < width; j++ {
