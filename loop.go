@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math"
 	"time"
 
 	_ "image/png"
@@ -45,7 +44,8 @@ func Loop() {
 
 	world := NewWorld()
 
-	camStart, camPos, camSpeed := winCenter, winCenter, 500.0
+	camStart, camPos := winCenter, winCenter
+	camSpeed := 600.0
 	minView := pixel.V(0, win.Bounds().H()).Sub(camPos).ScaledXY(pixel.V(1, -1))
 	maxView := pixel.V(win.Bounds().W(), 0).Sub(camPos).ScaledXY(pixel.V(1, -1))
 
@@ -62,17 +62,20 @@ func Loop() {
 
 		cam := pixel.IM.Moved(winCenter.Sub(camPos))
 		deltaCam := camPos.Sub(camStart)
+		// fmt.Printf("delta: %f\n", deltaCam)
 		win.SetMatrix(cam)
 
 		plax.Draw(win, pixel.IM.Scaled(pixel.ZV, 4).Moved(camPos))
 
 		minBlocks, maxBocks := minView.Add(deltaCam), maxView.Add(deltaCam)
-		blocks := VisibleBlocks(world, minBlocks, maxBocks)
+		blockDelta := pixel.V(Float64Mod(deltaCam.X, ASize), Float64Mod(deltaCam.Y, ASize))
+		// fmt.Printf("block delta: %f\n", blockDelta)
+		blocks := world.VisibleBlocks(minBlocks, maxBocks)
 		for v, block := range blocks {
 			if block == nil {
 				continue
 			}
-			v := v.ScaledXY(pixel.V(1, -1)).Add(camStart)
+			v := v.ScaledXY(pixel.V(1, -1)).Add(camStart.Sub(blockDelta))
 			blockMat := pixel.IM.Scaled(pixel.ZV, FScale).Moved(v)
 			minX, minY := float64(block.Type)*FSize, 3*FSize
 			maxX, maxY := float64(block.Type+1)*FSize, 4*FSize
@@ -127,19 +130,4 @@ func Loop() {
 
 		win.Update()
 	}
-}
-
-func VisibleBlocks(world World, min pixel.Vec, max pixel.Vec) map[pixel.Vec]*Block {
-	res := make(map[pixel.Vec]*Block)
-	minBlockX, minBlockY := int(math.Ceil(min.X/ASize)), int(math.Ceil(min.Y/ASize))
-	maxBlockX := minBlockX + int(math.Ceil((max.X-min.X)/ASize)) + 1
-	maxBlockY := minBlockY + int(math.Ceil((max.Y-min.Y)/ASize)) + 1
-	view := world.GridView(Cell{X: minBlockX, Y: minBlockY}, Cell{X: maxBlockX, Y: maxBlockY})
-	for i := 0; i < len(view); i++ {
-		for j := 0; j < len(view[i]); j++ {
-			x, y := float64(j*int(ASize))+min.X, float64(i*int(ASize))+min.Y
-			res[pixel.V(x, y)] = view[i][j]
-		}
-	}
-	return res
 }

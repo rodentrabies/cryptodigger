@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"math"
 	"os"
 
 	"github.com/faiface/pixel"
@@ -28,4 +29,8 @@ func loadPicture(path string) (pixel.Picture, error) {
 		return nil, err
 	}
 	return pixel.PictureDataFromImage(img), nil
+}
+
+func Float64Mod(a, b float64) float64 {
+	return a - b*math.Floor(a/b)
 }

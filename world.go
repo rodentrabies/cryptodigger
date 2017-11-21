@@ -1,7 +1,10 @@
 package main
 
 import (
+	"math"
 	"math/rand"
+
+	"github.com/faiface/pixel"
 )
 
 type BlockType = int
@@ -70,6 +73,23 @@ func (world World) GridView(min, max Cell) [][]*Block {
 		}
 	}
 	return grid
+}
+
+// VisibleBlocks returns map from vectors to blocks, translating vectors into grid cell
+// coordintates and building a map from a grid represented as matrix.
+func (world World) VisibleBlocks(min pixel.Vec, max pixel.Vec) map[pixel.Vec]*Block {
+	res := make(map[pixel.Vec]*Block)
+	bMinX, bMinY := int(math.Ceil(min.X/ASize)), int(math.Ceil(min.Y/ASize))
+	bMaxX := bMinX + int(math.Ceil((max.X-min.X)/ASize)) + 2
+	bMaxY := bMinY + int(math.Ceil((max.Y-min.Y)/ASize)) + 2
+	view := world.GridView(Cell{X: bMinX, Y: bMinY}, Cell{X: bMaxX, Y: bMaxY})
+	for i := 0; i < len(view); i++ {
+		for j := 0; j < len(view[i]); j++ {
+			x, y := float64(j*int(ASize))+min.X, float64(i*int(ASize))+min.Y
+			res[pixel.V(x, y)] = view[i][j]
+		}
+	}
+	return res
 }
 
 // Check whether there is a block at a given cell.
