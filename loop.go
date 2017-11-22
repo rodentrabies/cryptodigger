@@ -13,9 +13,8 @@ import (
 
 func Loop() {
 	cfg := pixelgl.WindowConfig{
-		Title: "Cryptodigger",
-		// Bounds: pixel.R(0, 0, 896, 512),
-		Bounds: pixel.R(0, 0, 768, 384),
+		Title:  "Cryptodigger",
+		Bounds: pixel.R(0, 0, WinWidth, WinHeight),
 		VSync:  true,
 	}
 
@@ -46,7 +45,6 @@ func Loop() {
 	world := NewWorld()
 
 	camStart, camPos := winCenter, winCenter
-	camSpeed := 600.0
 	minView := pixel.V(0, win.Bounds().H()).Sub(camPos).ScaledXY(pixel.V(1, -1))
 	maxView := pixel.V(win.Bounds().W(), 0).Sub(camPos).ScaledXY(pixel.V(1, -1))
 
@@ -54,7 +52,7 @@ func Loop() {
 
 	diggerFrame := pixel.V(0, 2*FSize)
 	step := time.Tick(time.Millisecond * 100)
-	scale := pixel.V(4, 4)
+	scale := pixel.V(FScale, FScale)
 	for !win.Closed() {
 		win.Clear(colornames.Skyblue)
 
@@ -66,7 +64,7 @@ func Loop() {
 		// fmt.Printf("delta: %f\n", deltaCam)
 		win.SetMatrix(cam)
 
-		plax.Draw(win, pixel.IM.Scaled(pixel.ZV, 4).Moved(camPos))
+		plax.Draw(win, pixel.IM.Scaled(pixel.ZV, FScale).Moved(camPos))
 
 		minBlocks := minView.Add(deltaCam.ScaledXY(pixel.V(1, -1)))
 		maxBlocks := maxView.Add(deltaCam.ScaledXY(pixel.V(1, -1)))
@@ -105,7 +103,7 @@ func Loop() {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(4*FSize))
 				if !world.ContainsBlock(diggerCell.Right()) {
-					camPos.X += camSpeed * dt
+					camPos.X += CamSpeed * dt
 				}
 
 			default:
@@ -117,7 +115,7 @@ func Loop() {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(4*FSize))
 				if !world.ContainsBlock(diggerCell.Left()) {
-					camPos.X -= camSpeed * dt
+					camPos.X -= CamSpeed * dt
 				}
 			default:
 			}

@@ -9,13 +9,22 @@ import (
 )
 
 var (
+	WinWidth, WinHeight float64 = 768, 384
+	// WinWidth, WinHeight float64 = 896, 512
+	// WinWidth, WinHeight float64 = 1536, 768
+
+	FScale float64 = 4
+	// FScale float64 = 8
+
+	CamSpeedFactor float64 = 125
+	CamSpeed       float64 = CamSpeedFactor * FScale
+
+	FSize float64 = 16
+	ASize float64 = FSize * FScale
+
 	DiggerSprite     = "assets/digger.png"
 	BlockSprite      = "assets/blocks.png"
 	BackgroundSprite = "assets/background.png"
-
-	FSize  float64 = 16
-	FScale float64 = 4
-	ASize  float64 = FSize * FScale
 )
 
 func loadPicture(path string) (pixel.Picture, error) {
