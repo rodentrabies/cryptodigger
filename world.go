@@ -29,6 +29,28 @@ type Cell struct {
 	X, Y int
 }
 
+func CellFromVec(pos pixel.Vec) Cell {
+	j, i := pos.XY()
+	x, y := int(math.Floor(j/ASize+0.5)), int(math.Floor(i/ASize+0.5))
+	return Cell{X: x, Y: y}
+}
+
+func (cell Cell) Right() Cell {
+	return Cell{X: cell.X + 1, Y: cell.Y}
+}
+
+func (cell Cell) Left() Cell {
+	return Cell{X: cell.X - 1, Y: cell.Y}
+}
+
+func (cell Cell) Up() Cell {
+	return Cell{X: cell.X, Y: cell.Y - 1}
+}
+
+func (cell Cell) Down() Cell {
+	return Cell{X: cell.X, Y: cell.Y + 1}
+}
+
 // Digger is a main character of the game.
 type Digger struct {
 }
@@ -40,7 +62,20 @@ func NewDigger() Digger {
 // World contains game state.
 type World struct {
 	Digger Digger
-	Grid   map[Cell]*Block
+	Grid   Grid
+}
+
+type Grid map[Cell]*Block
+
+func (grid Grid) Get(cell Cell) *Block {
+	if _, ok := grid[cell]; !ok && cell.Y > 0 {
+		grid[cell] = &Block{Type: rand.Intn(BlockTypes), Integrity: 8}
+	}
+	return grid[cell]
+}
+
+func (grid Grid) Del(cell Cell) {
+	grid[cell] = nil
 }
 
 func NewWorld() World {
@@ -55,21 +90,8 @@ func (world World) GridView(min, max Cell) [][]*Block {
 	grid := make([][]*Block, height)
 	for i := 0; i < height; i++ {
 		grid[i] = make([]*Block, width)
-		// Initially digger should stand above the top block level
-		if i+min.Y < 1 {
-			continue
-		}
 		for j := 0; j < width; j++ {
-			cell := Cell{Y: i + min.Y, X: j + min.X}
-			block, ok := world.Grid[cell]
-			if !ok {
-				block = &Block{
-					Type:      rand.Intn(BlockTypes),
-					Integrity: 4,
-				}
-				world.Grid[cell] = block
-			}
-			grid[i][j] = block
+			grid[i][j] = world.Grid.Get(Cell{Y: i + min.Y, X: j + min.X})
 		}
 	}
 	return grid
@@ -85,7 +107,7 @@ func (world World) VisibleBlocks(min pixel.Vec, max pixel.Vec) map[pixel.Vec]*Bl
 	view := world.GridView(Cell{X: bMinX, Y: bMinY}, Cell{X: bMaxX, Y: bMaxY})
 	for i := 0; i < len(view); i++ {
 		for j := 0; j < len(view[i]); j++ {
-			x, y := float64(j*int(ASize))+min.X, float64(i*int(ASize))+min.Y
+			x, y := float64(j)*ASize+min.X, float64(i)*ASize+min.Y
 			res[pixel.V(x, y)] = view[i][j]
 		}
 	}
@@ -94,15 +116,16 @@ func (world World) VisibleBlocks(min pixel.Vec, max pixel.Vec) map[pixel.Vec]*Bl
 
 // Check whether there is a block at a given cell.
 func (world World) ContainsBlock(cell Cell) bool {
-	return !(world.Grid[cell] == nil)
+	return !(world.Grid.Get(cell) == nil)
 }
 
 // Kick a block with a hammer, decrementing its integrity.
 // When integrity falls down to 0, block dissapears.
 func (world World) HammerBlock(cell Cell) {
-	if world.Grid[cell].Integrity <= 0 {
-		world.Grid[cell] = nil
-	} else {
-		world.Grid[cell].Integrity--
+	if block := world.Grid.Get(cell); block != nil {
+		block.Integrity--
+		if block.Integrity < 0 {
+			world.Grid.Del(cell)
+		}
 	}
 }
