@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	_ "image/png"
@@ -67,10 +68,11 @@ func Loop() {
 
 		plax.Draw(win, pixel.IM.Scaled(pixel.ZV, 4).Moved(camPos))
 
-		minBlocks, maxBocks := minView.Add(deltaCam), maxView.Add(deltaCam)
+		minBlocks := minView.Add(deltaCam.ScaledXY(pixel.V(1, -1)))
+		maxBlocks := maxView.Add(deltaCam.ScaledXY(pixel.V(1, -1)))
 		blockDelta := pixel.V(Float64Mod(deltaCam.X, ASize), Float64Mod(deltaCam.Y, ASize))
-		// fmt.Printf("block delta: %f\n", blockDelta)
-		blocks := world.VisibleBlocks(minBlocks, maxBocks)
+		fmt.Printf("block delta: %f\n", blockDelta)
+		blocks := world.VisibleBlocks(minBlocks, maxBlocks)
 		for v, block := range blocks {
 			if block == nil {
 				continue
@@ -84,6 +86,13 @@ func Loop() {
 			blockSprite.Draw(win, blockMat)
 		}
 
+		diggerCell := CellFromVec(camPos.Sub(camStart).ScaledXY(pixel.V(1, -1)))
+		if !world.ContainsBlock(diggerCell.Down()) {
+			camPos.Y -= ASize
+		}
+
+		fmt.Printf("dcell: %v\n", diggerCell)
+
 		rect := pixel.Rect{diggerFrame, diggerFrame.Add(pixel.V(FSize, FSize))}
 		diggerSprite.Set(diggerPic, rect)
 		mat := pixel.IM.ScaledXY(pixel.ZV, scale).Moved(pixel.V(camPos.X, camPos.Y))
@@ -95,7 +104,10 @@ func Loop() {
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(4*FSize))
-				camPos.X += camSpeed * dt
+				if !world.ContainsBlock(diggerCell.Right()) {
+					camPos.X += camSpeed * dt
+				}
+
 			default:
 			}
 		} else if win.Pressed(pixelgl.KeyA) {
@@ -104,7 +116,9 @@ func Loop() {
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(4*FSize))
-				camPos.X -= camSpeed * dt
+				if !world.ContainsBlock(diggerCell.Left()) {
+					camPos.X -= camSpeed * dt
+				}
 			default:
 			}
 		} else if win.Pressed(pixelgl.MouseButtonLeft) {
@@ -112,6 +126,11 @@ func Loop() {
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(2*FSize))
+				if scale.X < 0 {
+					world.HammerBlock(diggerCell.Left())
+				} else {
+					world.HammerBlock(diggerCell.Right())
+				}
 			default:
 			}
 		} else if win.Pressed(pixelgl.MouseButtonRight) {
@@ -119,6 +138,7 @@ func Loop() {
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize)%int(2*FSize)) + 2*FSize
+				world.HammerBlock(diggerCell.Down())
 			default:
 			}
 		} else if win.JustReleased(pixelgl.KeyA) ||
