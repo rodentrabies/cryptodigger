@@ -31,16 +31,28 @@ type Cell struct {
 
 func CellFromVec(pos pixel.Vec) Cell {
 	j, i := pos.XY()
-	x, y := int(math.Floor(j/ASize+0.5)), int(math.Floor(i/ASize+0.5))
-	return Cell{X: x, Y: y}
+	var x float64
+	if j < 0 {
+		x = math.Floor(j/ASize + 0.5)
+	} else {
+		x = math.Ceil(j/ASize - 0.5)
+	}
+	ix, iy := int(x), int(math.Floor(i/ASize+0.5))
+	return Cell{X: ix, Y: iy}
 }
 
-func (cell Cell) Right() Cell {
-	return Cell{X: cell.X + 1, Y: cell.Y}
+func (cell Cell) Right(pos pixel.Vec) Cell {
+	if pos.X/ASize > float64(cell.X) {
+		cell.X++
+	}
+	return cell
 }
 
-func (cell Cell) Left() Cell {
-	return Cell{X: cell.X - 1, Y: cell.Y}
+func (cell Cell) Left(pos pixel.Vec) Cell {
+	if pos.X/ASize < float64(cell.X) {
+		cell.X--
+	}
+	return cell
 }
 
 func (cell Cell) Up() Cell {
@@ -102,12 +114,12 @@ func (world World) GridView(min, max Cell) [][]*Block {
 func (world World) VisibleBlocks(min pixel.Vec, max pixel.Vec) map[pixel.Vec]*Block {
 	res := make(map[pixel.Vec]*Block)
 	bMinX, bMinY := int(math.Ceil(min.X/ASize)), int(math.Ceil(min.Y/ASize))
-	bMaxX := bMinX + int(math.Ceil((max.X-min.X)/ASize)) + 2
-	bMaxY := bMinY + int(math.Ceil((max.Y-min.Y)/ASize)) + 2
-	view := world.GridView(Cell{X: bMinX, Y: bMinY}, Cell{X: bMaxX, Y: bMaxY})
+	bMaxX := bMinX + int(math.Ceil((max.X-min.X)/ASize))
+	bMaxY := bMinY + int(math.Ceil((max.Y-min.Y)/ASize))
+	view := world.GridView(Cell{X: bMinX - 1, Y: bMinY - 1}, Cell{X: bMaxX + 1, Y: bMaxY + 1})
 	for i := 0; i < len(view); i++ {
 		for j := 0; j < len(view[i]); j++ {
-			x, y := float64(j)*ASize+min.X, float64(i)*ASize+min.Y
+			x, y := float64(j-1)*ASize+min.X, float64(i-1)*ASize+min.Y
 			res[pixel.V(x, y)] = view[i][j]
 		}
 	}

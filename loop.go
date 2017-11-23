@@ -61,13 +61,14 @@ func Loop() {
 
 		cam := pixel.IM.Moved(winCenter.Sub(camPos))
 		deltaCam := camPos.Sub(camStart)
-		// fmt.Printf("delta: %f\n", deltaCam)
+		invDeltaCam := deltaCam.ScaledXY(pixel.V(1, -1))
+		fmt.Printf("delta: %f\n", deltaCam)
 		win.SetMatrix(cam)
 
 		plax.Draw(win, pixel.IM.Scaled(pixel.ZV, FScale).Moved(camPos))
 
-		minBlocks := minView.Add(deltaCam.ScaledXY(pixel.V(1, -1)))
-		maxBlocks := maxView.Add(deltaCam.ScaledXY(pixel.V(1, -1)))
+		minBlocks := minView.Add(invDeltaCam)
+		maxBlocks := maxView.Add(invDeltaCam)
 		blockDelta := pixel.V(Float64Mod(deltaCam.X, ASize), Float64Mod(deltaCam.Y, ASize))
 		fmt.Printf("block delta: %f\n", blockDelta)
 		blocks := world.VisibleBlocks(minBlocks, maxBlocks)
@@ -76,7 +77,7 @@ func Loop() {
 				continue
 			}
 			v := v.ScaledXY(pixel.V(1, -1)).Add(camStart.Sub(blockDelta))
-			blockMat := pixel.IM.Scaled(pixel.ZV, FScale).Moved(v)
+			blockMat := pixel.IM.Scaled(pixel.ZV, FScale).Moved(v.Add(pixel.V(ASize, 0)))
 			minX, minY := float64(block.Type)*FSize, 3*FSize
 			maxX, maxY := float64(block.Type+1)*FSize, 4*FSize
 			r := pixel.R(minX, minY, maxX, maxY)
@@ -84,12 +85,12 @@ func Loop() {
 			blockSprite.Draw(win, blockMat)
 		}
 
-		diggerCell := CellFromVec(camPos.Sub(camStart).ScaledXY(pixel.V(1, -1)))
+		diggerCell := CellFromVec(invDeltaCam)
 		if !world.ContainsBlock(diggerCell.Down()) {
 			camPos.Y -= ASize
 		}
 
-		fmt.Printf("dcell: %v\n", diggerCell)
+		fmt.Printf("dcell: %v\n\n", diggerCell)
 
 		rect := pixel.Rect{diggerFrame, diggerFrame.Add(pixel.V(FSize, FSize))}
 		diggerSprite.Set(diggerPic, rect)
@@ -102,7 +103,7 @@ func Loop() {
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(4*FSize))
-				if !world.ContainsBlock(diggerCell.Right()) {
+				if !world.ContainsBlock(diggerCell.Right(invDeltaCam)) {
 					camPos.X += CamSpeed * dt
 				}
 
@@ -114,7 +115,7 @@ func Loop() {
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(4*FSize))
-				if !world.ContainsBlock(diggerCell.Left()) {
+				if !world.ContainsBlock(diggerCell.Left(invDeltaCam)) {
 					camPos.X -= CamSpeed * dt
 				}
 			default:
@@ -125,9 +126,9 @@ func Loop() {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(2*FSize))
 				if scale.X < 0 {
-					world.HammerBlock(diggerCell.Left())
+					world.HammerBlock(diggerCell.Left(invDeltaCam))
 				} else {
-					world.HammerBlock(diggerCell.Right())
+					world.HammerBlock(diggerCell.Right(invDeltaCam))
 				}
 			default:
 			}
