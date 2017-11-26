@@ -12,6 +12,8 @@ import (
 	"golang.org/x/image/colornames"
 )
 
+var SM = pixel.IM.Scaled(pixel.ZV, FScale)
+
 func Loop() {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Cryptodigger",
@@ -24,12 +26,12 @@ func Loop() {
 		panic(err)
 	}
 	winCenter := win.Bounds().Center()
-	winTopLeft := pixel.V(20, WinHeight-40)
+	winTopLeft := pixel.V(50, WinHeight-50)
 
 	_, backgroundSprite := LoadSprite(BackgroundSprite)
 	diggerPic, diggerSprite := LoadSprite(DiggerSprite)
-	blockPic, blockSprite := LoadSprite(BlockSprite)
-	coinAlphabet := LoadAlphabet(CoinsFont, text.ASCII)
+	iconsPic, iconsSprite := LoadSprite(IconsSprite)
+	coinAlphabet := LoadAlphabet(CoinsFont, 8, text.ASCII)
 
 	world, digger := NewWorld(), NewDigger()
 
@@ -41,7 +43,7 @@ func Loop() {
 
 	diggerFrame := pixel.V(0, 2*FSize)
 	step := time.Tick(time.Millisecond * 100)
-	scale := pixel.V(FScale, FScale)
+	scale := pixel.V(1, 1)
 	for !win.Closed() {
 		win.Clear(colornames.Skyblue)
 
@@ -54,7 +56,7 @@ func Loop() {
 		// fmt.Printf("delta: %f\n", deltaCam)
 		win.SetMatrix(cam)
 
-		backgroundSprite.Draw(win, pixel.IM.Scaled(pixel.ZV, FScale).Moved(camPos))
+		backgroundSprite.Draw(win, SM.Moved(camPos))
 
 		minBlocks := minView.Add(invDeltaCam)
 		maxBlocks := maxView.Add(invDeltaCam)
@@ -66,12 +68,12 @@ func Loop() {
 				continue
 			}
 			v := v.ScaledXY(pixel.V(1, -1)).Add(camStart.Sub(blockDelta))
-			blockMat := pixel.IM.Scaled(pixel.ZV, FScale).Moved(v.Add(pixel.V(ASize, 0)))
+			blockMat := SM.Moved(v.Add(pixel.V(ASize, 0)))
 			minX, minY := float64(block.Type)*FSize, 3*FSize
 			maxX, maxY := float64(block.Type+1)*FSize, 4*FSize
 			r := pixel.R(minX, minY, maxX, maxY)
-			blockSprite.Set(blockPic, r)
-			blockSprite.Draw(win, blockMat)
+			iconsSprite.Set(iconsPic, r)
+			iconsSprite.Draw(win, blockMat)
 		}
 
 		diggerCell := CellFromVec(invDeltaCam)
@@ -79,19 +81,25 @@ func Loop() {
 			camPos.Y -= ASize
 		}
 
-		// fmt.Printf("dcell: %v\n\n", diggerCell)
-
+		// Draw digger
 		rect := pixel.Rect{diggerFrame, diggerFrame.Add(pixel.V(FSize, FSize))}
 		diggerSprite.Set(diggerPic, rect)
-		mat := pixel.IM.ScaledXY(pixel.ZV, scale).Moved(pixel.V(camPos.X, camPos.Y))
-		diggerSprite.Draw(win, mat)
+		dMat := SM.ScaledXY(pixel.ZV, scale).Moved(pixel.V(camPos.X, camPos.Y))
+		diggerSprite.Draw(win, dMat)
 
-		coinsMat := pixel.IM.Scaled(pixel.ZV, FScale/2).Moved(winTopLeft.Add(deltaCam))
-		coinAlphabet.Draw(win, strconv.Itoa(digger.Coins), coinsMat)
+		// Draw coin count icon
+		topLeft := winTopLeft.Add(deltaCam)
+		// Coin icon
+		iconsSprite.Set(iconsPic, pixel.R(0, 2*FSize, FSize, 3*FSize))
+		iconsSprite.Draw(win, SM.Moved(topLeft))
+		// Coin count
+		str, col := strconv.Itoa(digger.Coins), colornames.White
+		topLeftText := topLeft.Add(pixel.V(0.6*ASize, -0.3*ASize))
+		coinAlphabet.Draw(win, str, col, SM.Moved(topLeftText))
 
 		if win.Pressed(pixelgl.KeyD) {
 			diggerFrame.Y = 2 * FSize
-			scale = pixel.V(FScale, FScale)
+			scale = pixel.V(1, 1)
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(4*FSize))
@@ -103,7 +111,7 @@ func Loop() {
 			}
 		} else if win.Pressed(pixelgl.KeyA) {
 			diggerFrame.Y = 2 * FSize
-			scale = pixel.V(-FScale, FScale)
+			scale = pixel.V(-1, 1)
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(4*FSize))

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image"
+	"image/color"
 	"io/ioutil"
 	"math"
 	"os"
@@ -20,38 +21,43 @@ var (
 	FScale float64 = 4
 	// FScale float64 = 8
 
-	CamSpeedFactor float64 = 125
+	CamSpeedFactor float64 = 150
 	CamSpeed       float64 = CamSpeedFactor * FScale
 
 	FSize float64 = 16
 	ASize float64 = FSize * FScale
 
 	DiggerSprite     = "assets/digger.png"
-	BlockSprite      = "assets/blocks.png"
+	IconsSprite      = "assets/icons.png"
 	BackgroundSprite = "assets/background.png"
 
-	CoinsFont = "assets/somepx/Runners/Runners.ttf"
-	TextFont  = "assets/somepx/Runners/Runners.ttf"
+	CoinsFont = "assets/somepx/Smart/Smart.ttf"
+	TextFont  = "assets/somepx/Smart/Smart.ttf"
 )
 
 type Alphabet text.Atlas
 
-func LoadAlphabet(filename string, runeset ...[]rune) *Alphabet {
+func LoadAlphabet(filename string, size float64, runeset ...[]rune) *Alphabet {
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
-	font, err := truetype.Parse(bytes)
+	ttf, err := truetype.Parse(bytes)
 	if err != nil {
 		panic(err)
 	}
-	alphabet := Alphabet(*text.NewAtlas(truetype.NewFace(font, nil), runeset...))
+	face := truetype.NewFace(ttf, &truetype.Options{
+		Size: size,
+		DPI:  144,
+	})
+	alphabet := Alphabet(*text.NewAtlas(face, runeset...))
 	return &alphabet
 }
 
-func (alphabet Alphabet) Draw(t pixel.Target, str string, m pixel.Matrix) {
+func (alphabet Alphabet) Draw(t pixel.Target, str string, color color.Color, m pixel.Matrix) {
 	atlas := text.Atlas(alphabet)
 	textDrawer := text.New(pixel.V(0, 0), &atlas)
+	textDrawer.Color = color
 	fmt.Fprintf(textDrawer, "%s", str)
 	textDrawer.Draw(t, m)
 }

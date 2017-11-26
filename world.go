@@ -12,9 +12,9 @@ type BlockType = int
 const BlockTypes = 4
 
 const (
-	SmallCoinBlock = iota
+	SimpleBlock = iota
+	SmallCoinBlock
 	BigCoinBlock
-	SimpleBlock
 	SurprizeBlock
 )
 
