@@ -3,20 +3,30 @@ package main
 import (
 	"math"
 	"math/rand"
+	"time"
 
 	"github.com/faiface/pixel"
 )
 
 type BlockType = int
 
-const BlockTypes = 4
-
 const (
+	// Different block types
 	SimpleBlock = iota
 	SmallCoinBlock
 	BigCoinBlock
 	SurprizeBlock
+
+	// Number of block types
+	BlockTypes
 )
+
+var BlockTypeFreq = map[int]int{
+	SimpleBlock:    20,
+	SmallCoinBlock: 7,
+	BigCoinBlock:   2,
+	SurprizeBlock:  1,
+}
 
 // Block is an integral part of the world.
 type Block struct {
@@ -98,7 +108,18 @@ type Grid map[Cell]*Block
 
 func (grid Grid) Get(cell Cell) *Block {
 	if _, ok := grid[cell]; !ok && cell.Y > 0 {
-		grid[cell] = &Block{Type: rand.Intn(BlockTypes), Integrity: 8}
+		totalWeight := 0
+		for _, w := range BlockTypeFreq {
+			totalWeight += w
+		}
+		i, r := 0, rand.Intn(totalWeight)
+		for i < BlockTypes {
+			if r -= BlockTypeFreq[i]; r <= 0 {
+				break
+			}
+			i++
+		}
+		grid[cell] = &Block{Type: i, Integrity: 8}
 	}
 	return grid[cell]
 }
@@ -108,6 +129,7 @@ func (grid Grid) Del(cell Cell) {
 }
 
 func NewWorld() World {
+	rand.Seed(time.Now().Unix())
 	return World{make(map[Cell]*Block)}
 }
 

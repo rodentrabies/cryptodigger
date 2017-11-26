@@ -61,7 +61,6 @@ func Loop() {
 		minBlocks := minView.Add(invDeltaCam)
 		maxBlocks := maxView.Add(invDeltaCam)
 		blockDelta := pixel.V(Float64Mod(deltaCam.X, ASize), Float64Mod(deltaCam.Y, ASize))
-		// fmt.Printf("block delta: %f\n", blockDelta)
 		blocks := world.VisibleBlocks(minBlocks, maxBlocks)
 		for v, block := range blocks {
 			if block == nil {
