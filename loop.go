@@ -1,13 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"strconv"
 	"time"
 
 	_ "image/png"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
+	"github.com/faiface/pixel/text"
 	"golang.org/x/image/colornames"
 )
 
@@ -23,26 +24,14 @@ func Loop() {
 		panic(err)
 	}
 	winCenter := win.Bounds().Center()
+	winTopLeft := pixel.V(20, WinHeight-40)
 
-	backgroundPic, err := loadPicture(BackgroundSprite)
-	if err != nil {
-		panic(err)
-	}
-	plax := pixel.NewSprite(backgroundPic, backgroundPic.Bounds())
+	_, backgroundSprite := LoadSprite(BackgroundSprite)
+	diggerPic, diggerSprite := LoadSprite(DiggerSprite)
+	blockPic, blockSprite := LoadSprite(BlockSprite)
+	coinAlphabet := LoadAlphabet(CoinsFont, text.ASCII)
 
-	diggerPic, err := loadPicture(DiggerSprite)
-	if err != nil {
-		panic(err)
-	}
-	diggerSprite := pixel.NewSprite(diggerPic, diggerPic.Bounds())
-
-	blockPic, err := loadPicture(BlockSprite)
-	if err != nil {
-		panic(err)
-	}
-	blockSprite := pixel.NewSprite(blockPic, blockPic.Bounds())
-
-	world := NewWorld()
+	world, digger := NewWorld(), NewDigger()
 
 	camStart, camPos := winCenter, winCenter
 	minView := pixel.V(0, win.Bounds().H()).Sub(camPos).ScaledXY(pixel.V(1, -1))
@@ -62,15 +51,15 @@ func Loop() {
 		cam := pixel.IM.Moved(winCenter.Sub(camPos))
 		deltaCam := camPos.Sub(camStart)
 		invDeltaCam := deltaCam.ScaledXY(pixel.V(1, -1))
-		fmt.Printf("delta: %f\n", deltaCam)
+		// fmt.Printf("delta: %f\n", deltaCam)
 		win.SetMatrix(cam)
 
-		plax.Draw(win, pixel.IM.Scaled(pixel.ZV, FScale).Moved(camPos))
+		backgroundSprite.Draw(win, pixel.IM.Scaled(pixel.ZV, FScale).Moved(camPos))
 
 		minBlocks := minView.Add(invDeltaCam)
 		maxBlocks := maxView.Add(invDeltaCam)
 		blockDelta := pixel.V(Float64Mod(deltaCam.X, ASize), Float64Mod(deltaCam.Y, ASize))
-		fmt.Printf("block delta: %f\n", blockDelta)
+		// fmt.Printf("block delta: %f\n", blockDelta)
 		blocks := world.VisibleBlocks(minBlocks, maxBlocks)
 		for v, block := range blocks {
 			if block == nil {
@@ -90,12 +79,15 @@ func Loop() {
 			camPos.Y -= ASize
 		}
 
-		fmt.Printf("dcell: %v\n\n", diggerCell)
+		// fmt.Printf("dcell: %v\n\n", diggerCell)
 
 		rect := pixel.Rect{diggerFrame, diggerFrame.Add(pixel.V(FSize, FSize))}
 		diggerSprite.Set(diggerPic, rect)
 		mat := pixel.IM.ScaledXY(pixel.ZV, scale).Moved(pixel.V(camPos.X, camPos.Y))
 		diggerSprite.Draw(win, mat)
+
+		coinsMat := pixel.IM.Scaled(pixel.ZV, FScale/2).Moved(winTopLeft.Add(deltaCam))
+		coinAlphabet.Draw(win, strconv.Itoa(digger.Coins), coinsMat)
 
 		if win.Pressed(pixelgl.KeyD) {
 			diggerFrame.Y = 2 * FSize
@@ -126,9 +118,9 @@ func Loop() {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(2*FSize))
 				if scale.X < 0 {
-					world.HammerBlock(diggerCell.Left(invDeltaCam))
+					digger.DigCell(world, diggerCell.Left(invDeltaCam))
 				} else {
-					world.HammerBlock(diggerCell.Right(invDeltaCam))
+					digger.DigCell(world, diggerCell.Right(invDeltaCam))
 				}
 			default:
 			}
@@ -137,7 +129,7 @@ func Loop() {
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize)%int(2*FSize)) + 2*FSize
-				world.HammerBlock(diggerCell.Down())
+				digger.DigCell(world, diggerCell.Down())
 			default:
 			}
 		} else if win.JustReleased(pixelgl.KeyA) ||

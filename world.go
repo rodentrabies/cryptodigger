@@ -9,19 +9,32 @@ import (
 
 type BlockType = int
 
-const (
-	BlockTypes = 4
+const BlockTypes = 4
 
-	SimpleBlock = iota
-	SmallBTCBlock
-	BigBTCBlock
-	SurprizeMFKBlock
+const (
+	SmallCoinBlock = iota
+	BigCoinBlock
+	SimpleBlock
+	SurprizeBlock
 )
 
 // Block is an integral part of the world.
 type Block struct {
 	Type      BlockType
 	Integrity int
+}
+
+func (block Block) Reward() int {
+	r := 0
+	switch block.Type {
+	case SmallCoinBlock:
+		r = 10
+	case BigCoinBlock:
+		r = 50
+	case SurprizeBlock:
+		r = 100
+	}
+	return r
 }
 
 // Cell is a pair of coordinates in a block grid
@@ -65,16 +78,20 @@ func (cell Cell) Down() Cell {
 
 // Digger is a main character of the game.
 type Digger struct {
+	Coins int
 }
 
 func NewDigger() Digger {
 	return Digger{}
 }
 
+func (digger *Digger) DigCell(world World, cell Cell) {
+	digger.Coins += world.HammerBlock(cell)
+}
+
 // World contains game state.
 type World struct {
-	Digger Digger
-	Grid   Grid
+	Grid Grid
 }
 
 type Grid map[Cell]*Block
@@ -91,10 +108,7 @@ func (grid Grid) Del(cell Cell) {
 }
 
 func NewWorld() World {
-	return World{
-		Digger: NewDigger(),
-		Grid:   make(map[Cell]*Block),
-	}
+	return World{make(map[Cell]*Block)}
 }
 
 func (world World) GridView(min, max Cell) [][]*Block {
@@ -133,11 +147,14 @@ func (world World) ContainsBlock(cell Cell) bool {
 
 // Kick a block with a hammer, decrementing its integrity.
 // When integrity falls down to 0, block dissapears.
-func (world World) HammerBlock(cell Cell) {
+func (world World) HammerBlock(cell Cell) (coins int) {
 	if block := world.Grid.Get(cell); block != nil {
 		block.Integrity--
 		if block.Integrity < 0 {
+			r := block.Reward()
+			coins += r
 			world.Grid.Del(cell)
 		}
 	}
+	return
 }
