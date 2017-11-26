@@ -1,11 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"image"
+	"io/ioutil"
 	"math"
 	"os"
 
 	"github.com/faiface/pixel"
+	"github.com/faiface/pixel/text"
+	"github.com/golang/freetype/truetype"
 )
 
 var (
@@ -25,9 +29,34 @@ var (
 	DiggerSprite     = "assets/digger.png"
 	BlockSprite      = "assets/blocks.png"
 	BackgroundSprite = "assets/background.png"
+
+	CoinsFont = "assets/somepx/Runners/Runners.ttf"
+	TextFont  = "assets/somepx/Runners/Runners.ttf"
 )
 
-func loadPicture(path string) (pixel.Picture, error) {
+type Alphabet text.Atlas
+
+func LoadAlphabet(filename string, runeset ...[]rune) *Alphabet {
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		panic(err)
+	}
+	font, err := truetype.Parse(bytes)
+	if err != nil {
+		panic(err)
+	}
+	alphabet := Alphabet(*text.NewAtlas(truetype.NewFace(font, nil), runeset...))
+	return &alphabet
+}
+
+func (alphabet Alphabet) Draw(t pixel.Target, str string, m pixel.Matrix) {
+	atlas := text.Atlas(alphabet)
+	textDrawer := text.New(pixel.V(0, 0), &atlas)
+	fmt.Fprintf(textDrawer, "%s", str)
+	textDrawer.Draw(t, m)
+}
+
+func LoadPicture(path string) (pixel.Picture, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -38,6 +67,15 @@ func loadPicture(path string) (pixel.Picture, error) {
 		return nil, err
 	}
 	return pixel.PictureDataFromImage(img), nil
+}
+
+func LoadSprite(file string) (pixel.Picture, *pixel.Sprite) {
+	pic, err := LoadPicture(file)
+	if err != nil {
+		panic(err)
+	}
+	sprite := pixel.NewSprite(pic, pic.Bounds())
+	return pic, sprite
 }
 
 func Float64Mod(a, b float64) float64 {
