@@ -31,7 +31,7 @@ var (
 	IconsSprite      = "assets/icons.png"
 	BackgroundSprite = "assets/background.png"
 
-	CoinsFont = "assets/somepx/Smart/Smart.ttf"
+	CoinsFont = "assets/tag_font.ttf"
 	TextFont  = "assets/somepx/Smart/Smart.ttf"
 )
 
