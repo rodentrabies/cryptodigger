@@ -34,7 +34,9 @@ var (
 	ButtonsSprite    = "assets/buttons.png"
 
 	CoinsFont = "assets/tag_font.ttf"
-	TextFont  = "assets/somepx/Smart/Smart.ttf"
+	TextFont  = "assets/text_font.ttf"
+
+	LineLength = 30
 )
 
 //------------------------------------------------------------------------------
