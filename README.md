@@ -23,9 +23,11 @@ go run *.go
 
 ### Controls
 
-| Key                   | Action                    |
-|-----------------------|---------------------------|
-| <kbd>a</kbd>          | go left                   |
-| <kbd>d</kbd>          | go right                  |
-| <kbd>LeftMouse</kbd>  | dig block in front of you |
-| <kbd>RightMouse</kbd> | dig block below you       |
+| Key                                  | Action                               |
+|--------------------------------------|--------------------------------------|
+| <kbd>a</kbd>                         | go left                              |
+| <kbd>d</kbd>                         | go right                             |
+| <kbd>a</kbd> + <kbd>LeftMouse</kbd>  | dig block to the left of you         |
+| <kbd>d</kbd> + <kbd>LeftMouse</kbd>  | dig block in the right of you        |
+| <kbd>s</kbd> + <kbd>LeftMouse</kbd>  | dig block in below you               |
+| <kbd>LeftMouse</kbd>                 | press button, if it is on the screen |
