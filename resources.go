@@ -30,14 +30,18 @@ var (
 	DiggerSprite     = "assets/digger.png"
 	IconsSprite      = "assets/icons.png"
 	BackgroundSprite = "assets/background.png"
+	PopupSprite      = "assets/popup.png"
+	ButtonsSprite    = "assets/buttons.png"
 
 	CoinsFont = "assets/tag_font.ttf"
 	TextFont  = "assets/somepx/Smart/Smart.ttf"
 )
 
+//------------------------------------------------------------------------------
+// Alphabet resource
 type Alphabet text.Atlas
 
-func LoadAlphabet(filename string, size float64, runeset ...[]rune) *Alphabet {
+func LoadAlphabet(filename string, size, dpi float64, runeset ...[]rune) *Alphabet {
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
@@ -46,10 +50,7 @@ func LoadAlphabet(filename string, size float64, runeset ...[]rune) *Alphabet {
 	if err != nil {
 		panic(err)
 	}
-	face := truetype.NewFace(ttf, &truetype.Options{
-		Size: size,
-		DPI:  144,
-	})
+	face := truetype.NewFace(ttf, &truetype.Options{Size: size, DPI: dpi})
 	alphabet := Alphabet(*text.NewAtlas(face, runeset...))
 	return &alphabet
 }

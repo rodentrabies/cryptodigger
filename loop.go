@@ -29,11 +29,14 @@ func Loop() {
 	winTopLeft := pixel.V(50, WinHeight-50)
 
 	_, backgroundSprite := LoadSprite(BackgroundSprite)
+	_, buttonsSprite := LoadSprite(ButtonsSprite)
+	popupPic, popupSprite := LoadSprite(PopupSprite)
 	diggerPic, diggerSprite := LoadSprite(DiggerSprite)
 	iconsPic, iconsSprite := LoadSprite(IconsSprite)
-	coinAlphabet := LoadAlphabet(CoinsFont, 8, text.ASCII)
+	coinAlphabet := LoadAlphabet(CoinsFont, 8, 144, text.ASCII)
+	eventAlphabet := LoadAlphabet(CoinsFont, 4, 144, text.ASCII)
 
-	world, digger := NewWorld(), NewDigger()
+	world, digger := NewWorld(), NewDigger(100)
 
 	camStart, camPos := winCenter, winCenter
 	minView := pixel.V(0, win.Bounds().H()).Sub(camPos).ScaledXY(pixel.V(1, -1))
@@ -78,6 +81,7 @@ func Loop() {
 		diggerCell := CellFromVec(invDeltaCam)
 		if !world.ContainsBlock(diggerCell.Down()) {
 			camPos.Y -= ASize
+			digger.Depth++
 		}
 
 		// Draw digger

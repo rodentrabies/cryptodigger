@@ -34,17 +34,16 @@ type Block struct {
 	Integrity int
 }
 
-func (block Block) Reward() int {
-	r := 0
+func (block Block) Reward() Event {
 	switch block.Type {
 	case SmallCoinBlock:
-		r = 10
+		return NewEvent("", 10)
 	case BigCoinBlock:
-		r = 50
+		return NewEvent("", 10)
 	case SurprizeBlock:
-		r = 100
+		return NewRandomEvent()
 	}
-	return r
+	return nil
 }
 
 // Cell is a pair of coordinates in a block grid
@@ -88,15 +87,25 @@ func (cell Cell) Down() Cell {
 
 // Digger is a main character of the game.
 type Digger struct {
-	Coins int
+	Coins  int
+	Depth  int
+	Events []Event
 }
 
-func NewDigger() Digger {
-	return Digger{}
+func NewDigger(coins int) Digger {
+	return Digger{Coins: coins, Depth: 0, Events: []Event{}}
 }
 
-func (digger *Digger) DigCell(world World, cell Cell) {
-	digger.Coins += world.HammerBlock(cell)
+func (digger *Digger) DigCell(world World, cell Cell) Event {
+	event := world.HammerBlock(cell)
+	if event == nil {
+		return nil
+	}
+	if event.Description() == "" {
+		digger.Coins = event.Consequence(digger.Coins)
+		return nil
+	}
+	return event
 }
 
 // World contains game state.
@@ -169,14 +178,13 @@ func (world World) ContainsBlock(cell Cell) bool {
 
 // Kick a block with a hammer, decrementing its integrity.
 // When integrity falls down to 0, block dissapears.
-func (world World) HammerBlock(cell Cell) (coins int) {
+func (world World) HammerBlock(cell Cell) Event {
 	if block := world.Grid.Get(cell); block != nil {
 		block.Integrity--
 		if block.Integrity < 0 {
-			r := block.Reward()
-			coins += r
 			world.Grid.Del(cell)
+			return block.Reward()
 		}
 	}
-	return
+	return nil
 }
