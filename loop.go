@@ -47,8 +47,13 @@ func Loop() {
 	diggerFrame := pixel.V(0, 2*FSize)
 	step := time.Tick(time.Millisecond * 100)
 	scale := pixel.V(1, 1)
+
+	var newEvent Event
+	var pendingEvent *EventBox
+	buttons := make(map[*Button]func())
+
 	for !win.Closed() {
-		win.Clear(colornames.Skyblue)
+		win.Clear(colornames.White)
 
 		dt := time.Since(last).Seconds()
 		last = time.Now()
@@ -90,17 +95,110 @@ func Loop() {
 		dMat := SM.ScaledXY(pixel.ZV, scale).Moved(pixel.V(camPos.X, camPos.Y))
 		diggerSprite.Draw(win, dMat)
 
-		// Draw coin count icon
 		topLeft := winTopLeft.Add(deltaCam)
+
 		// Coin icon
 		iconsSprite.Set(iconsPic, pixel.R(0, 2*FSize, FSize, 3*FSize))
 		iconsSprite.Draw(win, SM.Moved(topLeft))
 		// Coin count
-		str, col := strconv.Itoa(digger.Coins), colornames.White
-		topLeftText := topLeft.Add(pixel.V(0.6*ASize, -0.3*ASize))
-		coinAlphabet.Draw(win, str, col, SM.Moved(topLeftText))
+		coinStr, depthStr := strconv.Itoa(digger.Coins), strconv.Itoa(digger.Depth)
+		coinTextPos := topLeft.Add(pixel.V(0.6*ASize, -0.3*ASize))
+		depthTextPos := coinTextPos.Add(pixel.V(0, -ASize))
+		coinAlphabet.Draw(win, coinStr, colornames.White, SM.Moved(coinTextPos))
+		coinAlphabet.Draw(win, depthStr, colornames.White, SM.Moved(depthTextPos))
 
-		if win.Pressed(pixelgl.KeyD) {
+		// When digger has zero ballance, game ends
+		if digger.Coins < 0 {
+			win.Clear(colornames.Black)
+			str, col := "You're broke", colornames.White
+			coinAlphabet.Draw(win, str, col, SM.Moved(topLeft))
+			win.Update()
+			continue
+		}
+
+		// If there was some event, wait until player closes it
+		if newEvent != nil {
+			digger.Coins = newEvent.Consequence(digger.Coins)
+			px, py := popupPic.Bounds().Max.XY()
+			textPos := camPos.Add(pixel.V((-px*FScale+ASize)/2, py*FScale/2-ASize))
+
+			buttonP := camPos.Add(pixel.V(px*FScale/2-20, py*FScale/2-20))
+			buttonUpFrame := pixel.R(0, FSize*3, FSize, FSize*4)
+			buttonDownFrame := pixel.R(FSize, FSize*3, 2*FSize, FSize*4)
+			button := NewButton(buttonsSprite, buttonUpFrame, buttonDownFrame,
+				SM.Moved(buttonP))
+			button.Register(buttons, func() {
+				button.Unregister(buttons)
+				pendingEvent = nil
+			})
+			newEvent, pendingEvent = nil, &EventBox{
+				message:  newEvent.Description(),
+				position: textPos,
+				button:   button,
+			}
+		}
+
+		if pendingEvent != nil {
+			popupSprite.Draw(win, SM.Moved(camPos))
+			str, col := pendingEvent.message, colornames.Black
+			eventAlphabet.Draw(win, str, col, SM.Moved(pendingEvent.position))
+			pendingEvent.button.Draw(win)
+			if win.Pressed(pixelgl.MouseButtonLeft) {
+				for button, _ := range buttons {
+					if button.Within(win.MousePosition().Add(deltaCam)) {
+						button.Push()
+					} else {
+						button.Release()
+					}
+				}
+			}
+
+			if win.JustReleased(pixelgl.MouseButtonLeft) {
+				for button, actionFunc := range buttons {
+					if button.Within(win.MousePosition().Add(deltaCam)) {
+						actionFunc()
+					}
+				}
+			}
+			win.Update()
+			continue
+		}
+
+		if win.Pressed(pixelgl.MouseButtonLeft) && win.Pressed(pixelgl.KeyA) {
+			diggerFrame.Y = 1 * FSize
+			select {
+			case <-step:
+				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(2*FSize))
+				if int(diggerFrame.X) == 0 {
+					digger.Coins--
+				}
+				newEvent = digger.DigCell(world, diggerCell.Left(invDeltaCam))
+			default:
+			}
+		} else if win.Pressed(pixelgl.MouseButtonLeft) && win.Pressed(pixelgl.KeyD) {
+			diggerFrame.Y = 1 * FSize
+			select {
+			case <-step:
+				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(2*FSize))
+				if int(diggerFrame.X) == 0 {
+					digger.Coins--
+				}
+				newEvent = digger.DigCell(world, diggerCell.Right(invDeltaCam))
+			default:
+			}
+		} else if win.Pressed(pixelgl.MouseButtonLeft) && win.Pressed(pixelgl.KeyS) {
+			diggerFrame.Y = 1 * FSize
+			select {
+			case <-step:
+
+				diggerFrame.X = float64(int(diggerFrame.X+FSize)%int(2*FSize)) + 2*FSize
+				if int(diggerFrame.X) == int(2*FSize) {
+					digger.Coins--
+				}
+				newEvent = digger.DigCell(world, diggerCell.Down())
+			default:
+			}
+		} else if win.Pressed(pixelgl.KeyD) {
 			diggerFrame.Y = 2 * FSize
 			scale = pixel.V(1, 1)
 			select {
@@ -109,7 +207,6 @@ func Loop() {
 				if !world.ContainsBlock(diggerCell.Right(invDeltaCam)) {
 					camPos.X += CamSpeed * dt
 				}
-
 			default:
 			}
 		} else if win.Pressed(pixelgl.KeyA) {
@@ -121,26 +218,6 @@ func Loop() {
 				if !world.ContainsBlock(diggerCell.Left(invDeltaCam)) {
 					camPos.X -= CamSpeed * dt
 				}
-			default:
-			}
-		} else if win.Pressed(pixelgl.MouseButtonLeft) {
-			diggerFrame.Y = 1 * FSize
-			select {
-			case <-step:
-				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(2*FSize))
-				if scale.X < 0 {
-					digger.DigCell(world, diggerCell.Left(invDeltaCam))
-				} else {
-					digger.DigCell(world, diggerCell.Right(invDeltaCam))
-				}
-			default:
-			}
-		} else if win.Pressed(pixelgl.MouseButtonRight) {
-			diggerFrame.Y = 1 * FSize
-			select {
-			case <-step:
-				diggerFrame.X = float64(int(diggerFrame.X+FSize)%int(2*FSize)) + 2*FSize
-				digger.DigCell(world, diggerCell.Down())
 			default:
 			}
 		} else if win.JustReleased(pixelgl.KeyA) ||

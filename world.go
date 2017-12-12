@@ -25,7 +25,7 @@ var BlockTypeFreq = map[int]int{
 	SimpleBlock:    20,
 	SmallCoinBlock: 7,
 	BigCoinBlock:   2,
-	SurprizeBlock:  1,
+	SurprizeBlock:  10,
 }
 
 // Block is an integral part of the world.
