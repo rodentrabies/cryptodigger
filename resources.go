@@ -63,6 +63,69 @@ func (alphabet Alphabet) Draw(t pixel.Target, str string, color color.Color, m p
 	textDrawer.Draw(t, m)
 }
 
+//------------------------------------------------------------------------------
+// Button resource
+type Button struct {
+	sprite *pixel.Sprite
+	matrix pixel.Matrix
+
+	upFrame, downFrame, currentFrame pixel.Rect
+}
+
+func NewButton(sprite *pixel.Sprite, uFrame, dFrame pixel.Rect, matrix pixel.Matrix) *Button {
+	return &Button{
+		sprite:       sprite,
+		upFrame:      uFrame,
+		downFrame:    dFrame,
+		currentFrame: uFrame,
+		matrix:       matrix,
+	}
+}
+
+func (b Button) Bounds() pixel.Rect {
+	r := b.sprite.Frame()
+	return pixel.Rect{
+		Min: b.matrix.Project(r.Center().Sub(r.Max)),
+		Max: b.matrix.Project(r.Center()),
+	}
+}
+
+func (b *Button) Push() {
+	b.currentFrame = b.downFrame
+}
+
+func (b *Button) Release() {
+	b.currentFrame = b.upFrame
+}
+
+func (b Button) Draw(t pixel.Target) {
+	b.sprite.Set(b.sprite.Picture(), b.currentFrame)
+	b.sprite.Draw(t, b.matrix)
+}
+
+func (b Button) Within(v pixel.Vec) bool {
+	r := b.Bounds()
+	return v.X > r.Min.X && v.X < r.Max.X && v.Y > r.Min.Y && v.Y < r.Max.Y
+}
+
+func (b *Button) Register(registry map[*Button]func(), action func()) {
+	registry[b] = action
+}
+
+func (b *Button) Unregister(registry map[*Button]func()) {
+	delete(registry, b)
+}
+
+//------------------------------------------------------------------------------
+// Event box
+type EventBox struct {
+	message  string
+	position pixel.Vec
+	button   *Button
+}
+
+//------------------------------------------------------------------------------
+// Utils
 func LoadPicture(path string) (pixel.Picture, error) {
 	file, err := os.Open(path)
 	if err != nil {
