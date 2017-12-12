@@ -89,11 +89,11 @@ func (cell Cell) Down() Cell {
 type Digger struct {
 	Coins  int
 	Depth  int
-	Events []Event
+	Events []string
 }
 
 func NewDigger(coins int) Digger {
-	return Digger{Coins: coins, Depth: 0, Events: []Event{}}
+	return Digger{Coins: coins, Depth: 0, Events: []string{}}
 }
 
 func (digger *Digger) DigCell(world World, cell Cell) Event {

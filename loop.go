@@ -34,7 +34,7 @@ func Loop() {
 	diggerPic, diggerSprite := LoadSprite(DiggerSprite)
 	iconsPic, iconsSprite := LoadSprite(IconsSprite)
 	coinAlphabet := LoadAlphabet(CoinsFont, 8, 144, text.ASCII)
-	eventAlphabet := LoadAlphabet(CoinsFont, 4, 144, text.ASCII)
+	eventAlphabet := LoadAlphabet(TextFont, 4, 144, text.ASCII)
 
 	world, digger := NewWorld(), NewDigger(100)
 
@@ -61,7 +61,6 @@ func Loop() {
 		cam := pixel.IM.Moved(winCenter.Sub(camPos))
 		deltaCam := camPos.Sub(camStart)
 		invDeltaCam := deltaCam.ScaledXY(pixel.V(1, -1))
-		// fmt.Printf("delta: %f\n", deltaCam)
 		win.SetMatrix(cam)
 
 		backgroundSprite.Draw(win, SM.Moved(camPos))
@@ -119,6 +118,8 @@ func Loop() {
 		// If there was some event, wait until player closes it
 		if newEvent != nil {
 			digger.Coins = newEvent.Consequence(digger.Coins)
+			digger.Events = append(digger.Events, newEvent.Description())
+
 			px, py := popupPic.Bounds().Max.XY()
 			textPos := camPos.Add(pixel.V((-px*FScale+ASize)/2, py*FScale/2-ASize))
 
@@ -166,6 +167,7 @@ func Loop() {
 
 		if win.Pressed(pixelgl.MouseButtonLeft) && win.Pressed(pixelgl.KeyA) {
 			diggerFrame.Y = 1 * FSize
+			scale = pixel.V(-1, 1)
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(2*FSize))
@@ -177,6 +179,7 @@ func Loop() {
 			}
 		} else if win.Pressed(pixelgl.MouseButtonLeft) && win.Pressed(pixelgl.KeyD) {
 			diggerFrame.Y = 1 * FSize
+			scale = pixel.V(1, 1)
 			select {
 			case <-step:
 				diggerFrame.X = float64(int(diggerFrame.X+FSize) % int(2*FSize))
