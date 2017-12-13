@@ -36,7 +36,8 @@ var (
 	CoinsFont = "assets/tag_font.ttf"
 	TextFont  = "assets/text_font.ttf"
 
-	LineLength = 30
+	PopupWidth  = 30
+	PopupHeight = 8
 )
 
 //------------------------------------------------------------------------------
@@ -121,9 +122,11 @@ func (b *Button) Unregister(registry map[*Button]func()) {
 //------------------------------------------------------------------------------
 // Event box
 type EventBox struct {
-	message  string
+	decorate func()
+	message  []string
+	start    int
 	position pixel.Vec
-	button   *Button
+	buttons  []*Button
 }
 
 //------------------------------------------------------------------------------

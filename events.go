@@ -50,11 +50,11 @@ func reformatText(text string) string {
 	words := regexp.MustCompile("\\s").Split(text, -1)
 	result, line, spaces := "", "", 0
 	for _, word := range words {
-		if len(line)+len(word) < LineLength {
+		if len(line)+len(word) < PopupWidth {
 			line = line + word + " "
 			spaces++
 		} else {
-			n := (LineLength-len(line))/spaces + 1
+			n := (PopupWidth-len(line))/spaces + 1
 			result += strings.Replace(line, " ", strings.Repeat(" ", n), -1) + "\n"
 			line, spaces = word+" ", 0
 		}

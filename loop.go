@@ -1,7 +1,9 @@
 package main
 
 import (
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "image/png"
@@ -36,7 +38,7 @@ func Loop() {
 	coinAlphabet := LoadAlphabet(CoinsFont, 8, 144, text.ASCII)
 	eventAlphabet := LoadAlphabet(TextFont, 4, 144, text.ASCII)
 
-	world, digger := NewWorld(), NewDigger(100)
+	world, digger := NewWorld(), NewDigger(20)
 
 	camStart, camPos := winCenter, winCenter
 	minView := pixel.V(0, win.Bounds().H()).Sub(camPos).ScaledXY(pixel.V(1, -1))
@@ -108,11 +110,42 @@ func Loop() {
 
 		// When digger has zero ballance, game ends
 		if digger.Coins < 0 {
-			win.Clear(colornames.Black)
-			str, col := "You're broke", colornames.White
-			coinAlphabet.Draw(win, str, col, SM.Moved(topLeft))
-			win.Update()
-			continue
+			digger.Coins = 0
+			px, py := popupPic.Bounds().Max.XY()
+			textPos := camPos.Add(pixel.V((-px*FScale+ASize)/2, py*FScale/2-ASize))
+
+			closeButtonPosition := camPos.Add(pixel.V(px*FScale/2-20, py*FScale/2-20))
+			closeButtonUpFrame := pixel.R(0, FSize*3, FSize, FSize*4)
+			closeButtonDownFrame := pixel.R(FSize, FSize*3, 2*FSize, FSize*4)
+			closeButton := NewButton(buttonsSprite, closeButtonUpFrame,
+				closeButtonDownFrame, SM.Moved(closeButtonPosition))
+			closeButton.Register(buttons, func() { os.Exit(0) })
+
+			restartButtonPosition := camPos.Add(pixel.V(px*FScale/2-20, py*FScale/2-20-ASize))
+			restartButtonUpFrame := pixel.R(0, FSize*2, FSize, FSize*3)
+			restartButtonDownFrame := pixel.R(FSize, FSize*2, 2*FSize, FSize*3)
+			restartButton := NewButton(buttonsSprite, restartButtonUpFrame,
+				restartButtonDownFrame, SM.Moved(restartButtonPosition))
+			restartButton.Register(buttons, func() {
+				pendingEvent = nil
+				world, digger = NewWorld(), NewDigger(10)
+				camPos = winCenter
+			})
+
+			var message string
+			if len(digger.Events) == 0 {
+				message = "You did nothing useful..."
+			} else {
+				message = strings.Join(digger.Events, "")
+			}
+
+			newEvent, pendingEvent = nil, &EventBox{
+				decorate: func() { win.Clear(colornames.Black) },
+				message:  strings.Split(message, "\n"),
+				position: textPos,
+				buttons:  []*Button{closeButton, restartButton},
+			}
+
 		}
 
 		// If there was some event, wait until player closes it
@@ -123,27 +156,44 @@ func Loop() {
 			px, py := popupPic.Bounds().Max.XY()
 			textPos := camPos.Add(pixel.V((-px*FScale+ASize)/2, py*FScale/2-ASize))
 
-			buttonP := camPos.Add(pixel.V(px*FScale/2-20, py*FScale/2-20))
+			buttonPosition := camPos.Add(pixel.V(px*FScale/2-20, py*FScale/2-20))
 			buttonUpFrame := pixel.R(0, FSize*3, FSize, FSize*4)
 			buttonDownFrame := pixel.R(FSize, FSize*3, 2*FSize, FSize*4)
 			button := NewButton(buttonsSprite, buttonUpFrame, buttonDownFrame,
-				SM.Moved(buttonP))
+				SM.Moved(buttonPosition))
 			button.Register(buttons, func() {
 				button.Unregister(buttons)
 				pendingEvent = nil
 			})
 			newEvent, pendingEvent = nil, &EventBox{
-				message:  newEvent.Description(),
+				decorate: func() {},
+				message:  strings.Split(newEvent.Description(), "\n"),
 				position: textPos,
-				button:   button,
+				buttons:  []*Button{button},
 			}
 		}
 
 		if pendingEvent != nil {
+			pendingEvent.decorate()
+			pendingEvent.start -= int(win.MouseScroll().Y)
+			if pendingEvent.start+PopupHeight > len(pendingEvent.message) {
+				pendingEvent.start = len(pendingEvent.message) - PopupHeight
+			}
+			if pendingEvent.start < 0 {
+				pendingEvent.start = 0
+			}
+
+			start, end := pendingEvent.start, pendingEvent.start+PopupHeight
+			if end > len(pendingEvent.message) {
+				end = len(pendingEvent.message) - 1
+			}
+			msg := strings.Join(pendingEvent.message[start:end], "\n")
+
 			popupSprite.Draw(win, SM.Moved(camPos))
-			str, col := pendingEvent.message, colornames.Black
-			eventAlphabet.Draw(win, str, col, SM.Moved(pendingEvent.position))
-			pendingEvent.button.Draw(win)
+			eventAlphabet.Draw(win, msg, colornames.Black, SM.Moved(pendingEvent.position))
+			for _, button := range pendingEvent.buttons {
+				button.Draw(win)
+			}
 			if win.Pressed(pixelgl.MouseButtonLeft) {
 				for button, _ := range buttons {
 					if button.Within(win.MousePosition().Add(deltaCam)) {
@@ -161,6 +211,7 @@ func Loop() {
 					}
 				}
 			}
+
 			win.Update()
 			continue
 		}
