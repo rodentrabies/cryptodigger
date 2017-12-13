@@ -47,6 +47,7 @@ func NewRandomEvent() Event {
 }
 
 func reformatText(text string) string {
+	text = regexp.MustCompile("\\s+").ReplaceAllString(text, " ")
 	words := regexp.MustCompile("\\s").Split(text, -1)
 	result, line, spaces := "", "", 0
 	for _, word := range words {
@@ -60,6 +61,14 @@ func reformatText(text string) string {
 		}
 	}
 	return result + line + "\n"
+}
+
+func compileStory(events []string) string {
+	story := ""
+	for _, event := range events {
+		story += prepositions[rand.Intn(len(prepositions))] + ", " + event + " "
+	}
+	return reformatText(story)
 }
 
 type impactDescriptor struct {
@@ -76,33 +85,47 @@ func randomImpact(impacts []impactDescriptor) (string, int) {
 //------------------------------------------------------------------------------
 // Event generator data
 var subjects = []string{
-	"Famous actor Battlefield Counterstrike",
-	"The creator of Ephemerium, Bitalic Buttcoin",
-	"Montero's CEO @cuddlybeetle",
-	"Self-proclaimed Bitcoin creator Sashimi Fakamoto",
+	"famous actor Battlefield Counterstrike",
+	"the creator of Ephemerium, Metallic Buttlegin",
+	"montero's CEO @cuddlybeetle",
+	"self-proclaimed Bitcoin creator Sashimi Fakamoto",
+	"government of Cambodia",
 }
 
 var verbs = []string{
 	"endorsed a",
 	"decided to take part in a",
-	"started a new cryptocurrency",
+	"started a",
+	"totally failed a",
+	"found a fatal mistake in a",
 }
 
 var objects = []string{
 	"Bitcoin ICO",
 	"movie about himself",
-	"Cryptocoin",
+	"new currency called Beetcash",
 }
 
 var consequences = []string{
-	"so the price started to fluctuate",
+	"so the price of Sniffcoin started to fluctuate",
 	"so community started a fundraiser",
-	"so market crashed",
+	"so Ephemerium market crashed",
 	"so hashpower fleed",
 }
 
 var impacts = []impactDescriptor{
-	{"you lost %d coins...", -1},
-	{"you gained %d coins...", 1},
-	{"(completely unrelated), someone stole %d coins from your storage...", -1},
+	{"you lost %d coins.", -1},
+	{"you gained %d coins.", 1},
+	{"(completely unrelated), " +
+		"someone stole %d coins from your storage.", -1},
+	{"not that it makes any sense, " +
+		"but your hammer died and you had to buy new one for %d coins.", -1},
+}
+
+var prepositions = []string{
+	"after that",
+	"later",
+	"then",
+	"in a couple of days",
+	"few hours later",
 }

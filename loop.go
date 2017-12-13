@@ -136,7 +136,7 @@ func Loop() {
 			if len(digger.Events) == 0 {
 				message = "You did nothing useful..."
 			} else {
-				message = strings.Join(digger.Events, "")
+				message = compileStory(digger.Events)
 			}
 
 			newEvent, pendingEvent = nil, &EventBox{
@@ -188,7 +188,6 @@ func Loop() {
 				end = len(pendingEvent.message) - 1
 			}
 			msg := strings.Join(pendingEvent.message[start:end], "\n")
-
 			popupSprite.Draw(win, SM.Moved(camPos))
 			eventAlphabet.Draw(win, msg, colornames.Black, SM.Moved(pendingEvent.position))
 			for _, button := range pendingEvent.buttons {
@@ -203,7 +202,6 @@ func Loop() {
 					}
 				}
 			}
-
 			if win.JustReleased(pixelgl.MouseButtonLeft) {
 				for button, actionFunc := range buttons {
 					if button.Within(win.MousePosition().Add(deltaCam)) {
@@ -211,7 +209,6 @@ func Loop() {
 					}
 				}
 			}
-
 			win.Update()
 			continue
 		}
